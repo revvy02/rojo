@@ -19,12 +19,24 @@ local function fuzzyEq(a: number, b: number, epsilon: number): boolean
 	return math.abs(a - b) < epsilon
 end
 
+local sinceLast = os.clock()
+local function waitIf()
+	local now = os.clock()
+	if now - sinceLast > 0.1 then
+		print("Waiting", now - sinceLast)
+		task.wait()
+	end
+	sinceLast = os.clock()
+end
+
 local function trueEquals(a, b): boolean
 	-- Exit early for simple equality values
 	if a == b then
 		return true
 	end
-
+	
+	waitIf()
+	
 	-- Treat nil and { Ref = "000...0" } as equal
 	if
 		(a == nil and type(b) == "table" and b.Ref == "00000000000000000000000000000000")
@@ -115,7 +127,7 @@ local function shouldDeleteUnknownInstances(virtualInstance)
 		return true
 	end
 end
-
+	
 local function diff(instanceMap, virtualInstances, rootId)
 	local patch = {
 		removed = {},
@@ -126,6 +138,8 @@ local function diff(instanceMap, virtualInstances, rootId)
 	-- Add a virtual instance and all of its descendants to the patch, marked as
 	-- being added.
 	local function markIdAdded(id)
+		waitIf()
+		
 		local virtualInstance = virtualInstances[id]
 		patch.added[id] = virtualInstance
 
@@ -134,8 +148,12 @@ local function diff(instanceMap, virtualInstances, rootId)
 		end
 	end
 
+
+
 	-- Internal recursive kernel for diffing an instance with the given ID.
 	local function diffInternal(id)
+		waitIf()
+		
 		local virtualInstance = virtualInstances[id]
 		local instance = instanceMap.fromIds[id]
 
@@ -159,7 +177,9 @@ local function diff(instanceMap, virtualInstances, rootId)
 
 		local changedProperties = {}
 		for propertyName, virtualValue in pairs(virtualInstance.Properties) do
+			waitIf()
 			local getProperySuccess, existingValueOrErr = getProperty(instance, propertyName)
+			waitIf()
 
 			if getProperySuccess then
 				local existingValue = existingValueOrErr
@@ -211,6 +231,7 @@ local function diff(instanceMap, virtualInstances, rootId)
 				end
 			end
 		end
+		waitIf()
 
 		if changedName ~= nil or changedClassName ~= nil or not isEmpty(changedProperties) then
 			table.insert(patch.updated, {
@@ -226,6 +247,7 @@ local function diff(instanceMap, virtualInstances, rootId)
 		-- corresponding virtual instance should be removed. Any instance that
 		-- does have a corresponding virtual instance is recursively diffed.
 		for _, childInstance in ipairs(instance:GetChildren()) do
+			waitIf()
 			local childId = instanceMap.fromInstances[childInstance]
 
 			if childId == nil then
@@ -247,7 +269,8 @@ local function diff(instanceMap, virtualInstances, rootId)
 				end
 			else
 				local diffSuccess, err = diffInternal(childId)
-
+				waitIf()
+				
 				if not diffSuccess then
 					return false, err
 				end
@@ -257,6 +280,7 @@ local function diff(instanceMap, virtualInstances, rootId)
 		-- Traverse the list of children in the virtual DOM. Any virtual
 		-- instance that has no corresponding real instance should be created.
 		for _, childId in ipairs(virtualInstance.Children) do
+			waitIf()
 			local childInstance = instanceMap.fromIds[childId]
 
 			if childInstance == nil then
