@@ -34,9 +34,9 @@ local function trueEquals(a, b): boolean
 	if a == b then
 		return true
 	end
-	
+
 	waitIf()
-	
+
 	-- Treat nil and { Ref = "000...0" } as equal
 	if
 		(a == nil and type(b) == "table" and b.Ref == "00000000000000000000000000000000")
@@ -127,7 +127,7 @@ local function shouldDeleteUnknownInstances(virtualInstance)
 		return true
 	end
 end
-	
+
 local function diff(instanceMap, virtualInstances, rootId)
 	local patch = {
 		removed = {},
@@ -139,7 +139,7 @@ local function diff(instanceMap, virtualInstances, rootId)
 	-- being added.
 	local function markIdAdded(id)
 		waitIf()
-		
+
 		local virtualInstance = virtualInstances[id]
 		patch.added[id] = virtualInstance
 
@@ -148,12 +148,10 @@ local function diff(instanceMap, virtualInstances, rootId)
 		end
 	end
 
-
-
 	-- Internal recursive kernel for diffing an instance with the given ID.
 	local function diffInternal(id)
 		waitIf()
-		
+
 		local virtualInstance = virtualInstances[id]
 		local instance = instanceMap.fromIds[id]
 
@@ -270,7 +268,7 @@ local function diff(instanceMap, virtualInstances, rootId)
 			else
 				local diffSuccess, err = diffInternal(childId)
 				waitIf()
-				
+
 				if not diffSuccess then
 					return false, err
 				end
